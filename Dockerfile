@@ -13,7 +13,7 @@ RUN npm ci
 COPY . .
 
 # Build de producción (cliente y servidor SSR)
-RUN npm run build
+RUN npm run build:all
 
 # Etapa 2: Producción
 FROM node:20-alpine AS runner
