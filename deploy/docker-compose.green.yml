@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app-green:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/mi-pwa:${IMAGE_TAG}
+    image: ghcr.io/ghostxdeveloper/mi-pwa:${IMAGE_TAG}
     container_name: app-green
     restart: unless-stopped
     ports:

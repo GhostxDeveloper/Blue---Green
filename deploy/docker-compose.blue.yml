@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   app-blue:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/mi-pwa:${IMAGE_TAG}
+    image: ghcr.io/ghostxdeveloper/mi-pwa:${IMAGE_TAG}
     container_name: app-blue
     restart: unless-stopped
     ports:

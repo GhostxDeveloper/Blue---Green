@@ -41,8 +41,8 @@ jobs:
           context: .
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mi-pwa:${{ env.IMAGE_TAG }}
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mi-pwa:latest
+            ${{ env.REGISTRY }}/ghostxdeveloper/mi-pwa:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/ghostxdeveloper/mi-pwa:latest
 
   deploy:
     name: Deploy to VPS
@@ -97,7 +97,7 @@ jobs:
             echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull de la nueva imagen
-            docker pull ghcr.io/${GITHUB_REPOSITORY_OWNER}/mi-pwa:${IMAGE_TAG}
+            docker pull ghcr.io/ghostxdeveloper/mi-pwa:${IMAGE_TAG}
 
             # Exportar variables para docker-compose
             export GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
