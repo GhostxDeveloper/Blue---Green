@@ -12,8 +12,8 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
-# Build de producción (cliente y servidor SSR)
-RUN npm run build:all
+# Build de producción
+RUN npm run build:prod
 
 # Etapa 2: Producción
 FROM node:20-alpine AS runner
@@ -30,7 +30,7 @@ ENV PORT=5173
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/server.js ./
+COPY --from=builder /app/server.prod.js ./
 COPY --from=builder /app/db.json ./
 
 # Usuario no-root por seguridad
@@ -43,4 +43,4 @@ EXPOSE 5173
 
 # Usar dumb-init como entrypoint
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "server.js"]
+CMD ["node", "server.prod.js"]
