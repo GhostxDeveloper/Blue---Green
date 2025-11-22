@@ -14,7 +14,7 @@ app.use(compression());
 app.use(express.static(path.resolve(__dirname, 'dist')));
 
 // SPA fallback - todas las rutas devuelven index.html
-app.get('*', (req, res) => {
+app.use((req, res) => {
   res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
 });
 
