@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app-blue:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/mi-pwa:${IMAGE_TAG}
+    container_name: app-blue
+    restart: unless-stopped
+    ports:
+      - "8081:5173"
+    environment:
+      - NODE_ENV=production
+      - PORT=5173
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:5173/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

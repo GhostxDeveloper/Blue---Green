@@ -1,0 +1,129 @@
+name: Blue-Green Deployment
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/mi-pwa
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mi-pwa:${{ env.IMAGE_TAG }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/mi-pwa:latest
+
+  deploy:
+    name: Deploy to VPS
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy deployment files to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "deploy/*"
+          target: "~/bluegreen/"
+          strip_components: 0
+
+      - name: Deploy Blue-Green
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+          IMAGE_TAG: ${{ env.IMAGE_TAG }}
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: GITHUB_REPOSITORY_OWNER,IMAGE_TAG
+          script: |
+            set -e
+
+            cd ~/bluegreen
+
+            # Leer deployment activo actual
+            source .env.deployment
+            echo "Deployment activo actual: $ACTIVE_DEPLOYMENT"
+
+            # Determinar target (el inactivo)
+            if [ "$ACTIVE_DEPLOYMENT" = "blue" ]; then
+              TARGET="green"
+              TARGET_PORT="8082"
+            else
+              TARGET="blue"
+              TARGET_PORT="8081"
+            fi
+
+            echo "Desplegando en ambiente: $TARGET"
+
+            # Login a GitHub Container Registry
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            # Pull de la nueva imagen
+            docker pull ghcr.io/${GITHUB_REPOSITORY_OWNER}/mi-pwa:${IMAGE_TAG}
+
+            # Exportar variables para docker-compose
+            export GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
+            export IMAGE_TAG=${IMAGE_TAG}
+
+            # Detener contenedor target si existe y levantar con nueva imagen
+            cd ~/bluegreen/deploy
+            docker-compose -f docker-compose.${TARGET}.yml down || true
+            docker-compose -f docker-compose.${TARGET}.yml up -d
+
+            # Esperar a que el contenedor esté listo
+            echo "Esperando que el contenedor esté listo..."
+            sleep 15
+
+            # Verificar health del nuevo contenedor
+            for i in {1..10}; do
+              if curl -sf http://127.0.0.1:${TARGET_PORT}/ > /dev/null 2>&1; then
+                echo "Contenedor $TARGET está respondiendo"
+                break
+              fi
+              echo "Intento $i: Esperando respuesta..."
+              sleep 5
+            done
+
+            # Ejecutar switch
+            chmod +x ~/bluegreen/deploy/switch-deployment.sh
+            ~/bluegreen/deploy/switch-deployment.sh
+
+            echo "Deploy completado exitosamente en $TARGET"
