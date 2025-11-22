@@ -190,7 +190,7 @@ function Home() {
   return (
     <div className="home">
       <header className="header">
-        <h1>📝 Mi Lista de Tareas</h1>
+        <h1>📝 Mi Lista de Tareas v2.0</h1>
         <div className="status">
           <span className={`status-indicator ${isOnline ? 'online' : 'offline'}`}>
             {isOnline ? '🟢 En línea' : '🔴 Sin conexión'}
