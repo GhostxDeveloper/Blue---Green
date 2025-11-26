@@ -164,6 +164,7 @@ La aplicación permite gestionar tareas diarias con las siguientes ventajas:
 
 ## Compatibilidad
 
+
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
